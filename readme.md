@@ -24,6 +24,7 @@ Finding hackathon teammates via random WhatsApp groups or Discord servers is noi
 It replicates how teams organically form at physical hackathons — profile-based discovery, mutual interest matching, real-time chat, and a collab board — but in a scalable, persistent digital environment.
 
 **Target users:**
+
 - 🎓 College students looking for hackathon teammates
 - 🛠️ Indie hackers seeking co-founders for side projects
 - 💼 Freelancers hunting for short-term collab gigs
@@ -50,6 +51,7 @@ Sign Up → Build Profile (AI Resume Parse)
 ## ✨ Core Features
 
 ### 🔐 Authentication & Security
+
 - Register / Login / Logout with JWT in HTTP-only cookies
 - Access token: **15 min** | Refresh token: **7 days** with rotation
 - Rate limiting on `/auth` and `/match` routes via `express-rate-limit`
@@ -57,12 +59,14 @@ Sign Up → Build Profile (AI Resume Parse)
 - All routes versioned under `/api/v1/`
 
 ### 👤 Intelligent Profile
+
 - Bio, GitHub link, tech stack, role type, and structured city (Country → State → City dropdown)
 - Avatar upload stored on Cloudinary
 - **AI Resume Parsing** — upload a PDF (≤ 5 MB), Gemini auto-fills your skills & experience
 - Manual fallback if Gemini fails — no silent errors
 
 ### 🔍 Smart Discovery Feed
+
 - Tinder-style card stack of developer profiles
 - Excludes: the logged-in user + anyone already swiped on
 - **Filter by:** tech stack tags, city/state, role type
@@ -73,6 +77,7 @@ Sign Up → Build Profile (AI Resume Parse)
 > 🔮 V2: AI semantic matching via Gemini embeddings + skill-gap vectors
 
 ### 💘 Matching Engine
+
 - Right swipe → `SwipeRecord { type: interested }`
 - Left swipe → `SwipeRecord { type: ignored }` (prevents re-appearance)
 - **Mutual match** = two `interested` records pointing at each other → both become `matched` → `Match` record created
@@ -80,6 +85,7 @@ Sign Up → Build Profile (AI Resume Parse)
 - Compound unique index on `(senderId, receiverId)` — no duplicates, no ghost matches
 
 ### 💬 1-on-1 Direct Messaging
+
 - Auto-created on mutual match
 - Real-time via **Socket.io** with online status, typing indicators, and read receipts
 - Online presence tracked via in-memory `Set` keyed by `userId` on the Socket.io server
@@ -88,6 +94,7 @@ Sign Up → Build Profile (AI Resume Parse)
 - WebSocket events are rate-limited against spam
 
 ### 🏠 Group Team Rooms ⭐
+
 - Create a team room from any 1-on-1 DM
 - Creator is assigned as **room owner**
 - Hard cap: **6 participants** (enforced at API level, not just UI)
@@ -103,12 +110,14 @@ Sign Up → Build Profile (AI Resume Parse)
   - File sharing via Cloudinary
 
 ### 📋 Collab / Gig Board
+
 - Public board for posting collab requests + required skill tags
 - Likes are **toggleable** (stored in a separate `Like` collection, not embedded)
 - Max **3 comments per user per post** — enforced at service layer; edits don't count toward limit
 - Posts **auto-expire after 14 days** via a UTC `expiresAt` timestamp + daily cron job
 
 ### 🔔 Notifications
+
 - **Dual delivery:** real-time via Socket.io + always persisted in DB
 - Triggers: new match, incoming DM, group room invite, group message
 - `(userId, read)` index powers unread badge count
@@ -146,6 +155,7 @@ DevSync uses a classic **client–server architecture** with REST for standard o
 ```
 
 **State management strategy:**
+
 - **TanStack Query** → all REST/server state
 - **Zustand** → local UI state (modals, active chat, notification badge)
 - **Socket.io events** → invalidate relevant TanStack Query cache keys
@@ -156,70 +166,39 @@ DevSync uses a classic **client–server architecture** with REST for standard o
 
 ### Backend
 
-| Tool | Purpose |
-|------|---------|
-| Node.js | Runtime |
-| Express.js | HTTP framework |
-| MongoDB + Mongoose | Primary database |
-| Redis | Feed caching |
-| Socket.io | Real-time WebSocket layer |
-| JWT + bcrypt | Auth & password hashing |
-| Multer + Cloudinary | File uploads & storage |
-| `@google/generative-ai` | AI resume parsing (Gemini) |
-| node-cron | Background jobs |
-| Winston | Structured logging |
-| Helmet, express-rate-limit, express-mongo-sanitize | Security middleware |
+| Tool                                               | Purpose                    |
+| -------------------------------------------------- | -------------------------- |
+| Node.js                                            | Runtime                    |
+| Express.js                                         | HTTP framework             |
+| MongoDB + Mongoose                                 | Primary database           |
+| Redis                                              | Feed caching               |
+| Socket.io                                          | Real-time WebSocket layer  |
+| JWT + bcrypt                                       | Auth & password hashing    |
+| Multer + Cloudinary                                | File uploads & storage     |
+| `@google/generative-ai`                            | AI resume parsing (Gemini) |
+| node-cron                                          | Background jobs            |
+| Winston                                            | Structured logging         |
+| Helmet, express-rate-limit, express-mongo-sanitize | Security middleware        |
 
 ### Frontend
 
-| Tool | Purpose |
-|------|---------|
-| Vite + React | Build tool & UI framework |
-| Tailwind CSS + shadcn/ui | Styling & component library |
-| Zustand | Local / UI state |
-| TanStack Query | Server / REST state |
-| React Hook Form + Zod | Forms & validation |
-| Framer Motion | Animations |
-| socket.io-client | WebSocket client |
-| country-state-city | Bundled location data (no API call) |
-
----
-
-## 🗄️ Data Models
-
-| Model | Key Fields |
-|-------|-----------|
-| `User` | `email`, `passwordHash`, `role (user\|admin)`, `refreshToken` |
-| `Profile` | `userId`, `bio`, `techStack[]`, `roleType`, `city { name, stateCode, countryCode }`, `avatarUrl`, `resumeUrl` |
-| `SwipeRecord` | `senderId`, `receiverId`, `type (interested\|ignored\|matched)` |
-| `Match` | `userA`, `userB`, `matchedAt` — stored in normalized sorted order |
-| `ChatRoom` | `members[{ userId, role }]`, `type (direct\|group)`, `name`, `hackathonTag`, `pinnedMessages[]` (max 10) |
-| `Message` | `chatRoomId`, `senderId`, `content`, `type (text\|code\|file)`, `language`, `status (sent\|read)` |
-| `GroupInvite` | `chatRoomId`, `invitedBy`, `invitedUser`, `status (pending\|accepted\|rejected)` |
-| `Post` | `authorId`, `description`, `skillTags[]`, `status (active\|expired)`, `likeCount`, `expiresAt (UTC)` |
-| `Like` | `postId`, `userId` — separate collection |
-| `Comment` | `postId`, `authorId`, `content`, `createdAt` |
-| `Notification` | `userId`, `type`, `referenceId`, `read`, `createdAt (30-day TTL)` |
-
-### Key DB Indexes
-
-| Collection | Index | Reason |
-|------------|-------|--------|
-| `SwipeRecord` | `(senderId, receiverId)` unique | Prevents duplicate swipes |
-| `Match` | `(userA, userB)` unique | Race-condition-safe match creation |
-| `Profile` | `techStack`, `roleType`, `city.stateCode` | Discovery filters |
-| `ChatRoom` | `members.userId` array index | "Find all rooms for this user" queries |
-| `Message` | `(chatRoomId, _id)` | Cursor-based pagination |
-| `Post` | `(status, expiresAt)` | Cron expiry queries |
-| `Notification` | `(userId, read)` + TTL on `createdAt` | Unread badge + auto-cleanup |
-| `Like` | `(postId, userId)` unique | Prevents duplicate likes |
-| `Comment` | `(postId, authorId)` | Enforces 3-comment limit |
+| Tool                     | Purpose                             |
+| ------------------------ | ----------------------------------- |
+| Vite + React             | Build tool & UI framework           |
+| Tailwind CSS + shadcn/ui | Styling & component library         |
+| Zustand                  | Local / UI state                    |
+| TanStack Query           | Server / REST state                 |
+| React Hook Form + Zod    | Forms & validation                  |
+| Framer Motion            | Animations                          |
+| socket.io-client         | WebSocket client                    |
+| country-state-city       | Bundled location data (no API call) |
 
 ---
 
 ## 🚀 Local Setup
 
 ### Prerequisites
+
 - Node.js (v18+)
 - Docker (for MongoDB + Redis)
 
@@ -274,22 +253,6 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 GEMINI_API_KEY=your_gemini_api_key
 ```
-
----
-
-## 📅 Development Roadmap
-
-| Phase | Scope | Highlights |
-|-------|-------|------------|
-| **Phase 1** | Foundation | Repo scaffold, Docker Compose, Socket.io server, JWT handshake, logging, `/health` endpoint |
-| **Phase 2** | Auth | Register/Login/Logout, JWT access + refresh tokens, refresh rotation, auth middleware |
-| **Phase 3** | Profiles | `GET/PUT /me`, avatar upload, structured city field, AI resume parsing (Gemini) |
-| **Phase 4** | Discovery | Aggregation pipeline, Redis feed cache + invalidation rules, swipe recording |
-| **Phase 5** | Matching | Mutual detection, normalized Match model, MongoDB transaction, real-time match notification |
-| **Phase 6** | 1-on-1 DM | WebSocket chat, typing indicators, read receipts, cursor pagination, event rate limiting |
-| **Phase 7** | Group Rooms | Create from DM, GroupInvite model, 6-member cap, code snippets, pinned messages (max 10) |
-| **Phase 8** | Post Board | Post CRUD, toggleable likes, comment cap (3/user/post), UTC expiry, daily cron job |
-| **Phase 9** | Polish | Security hardening, seed script (15 dev profiles), README, E2E manual test |
 
 ---
 
