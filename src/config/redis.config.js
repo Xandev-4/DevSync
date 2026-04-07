@@ -8,7 +8,7 @@ const redisClient = createClient({
 
 // listen for errors
 redisClient.on("error", (err) => {
-  logger.error(`Redis error , ${err.message}`);
+  logger.error(`Redis error , ${err.message || err}`);
 });
 
 export default redisClient;
