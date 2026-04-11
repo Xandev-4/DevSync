@@ -33,7 +33,7 @@ app.get("/health", (_req, res) => {
 
 // --- Module Routes (wired in, empty for now) ---
 import authRoutes from "./modules/auth/auth.routes.js";
-// import profileRoutes from "./modules/profile/profile.routes.js";
+import profileRoutes from "./modules/profile/profile.routes.js";
 // import feedRoutes from "./modules/feed/feed.routes.js";
 // import matchRoutes from "./modules/match/match.routes.js";
 // import chatRoutes from "./modules/chat/chat.routes.js";
@@ -41,7 +41,7 @@ import authRoutes from "./modules/auth/auth.routes.js";
 // import notificationRoutes from "./modules/notification/notification.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
-// app.use("/api/v1/profile", profileRoutes);
+app.use("/api/v1/profile", profileRoutes);
 // app.use("/api/v1/feed", feedRoutes);
 // app.use("/api/v1/swipes", matchRoutes);
 // app.use("/api/v1/chat", chatRoutes);

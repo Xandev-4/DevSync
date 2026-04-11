@@ -6,15 +6,16 @@ import * as authService from "./auth.service.js";
 
 // POST /api/v1/auth/register
 export const registerController = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    throw new ApiError(400, "Email and password are required");
+  const { email, password, name } = req.body;
+  if (!email || !password || !name) {
+    throw new ApiError(400, "Email, password and name are required");
   }
 
   // service handles validation, hashing, token generation
   const { user, accessToken, refreshToken } = await authService.register(
     email,
     password,
+    name,
   );
 
   // set both tokens as HTTP-only cookies
