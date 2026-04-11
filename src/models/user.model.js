@@ -43,10 +43,10 @@ const userSchema = new mongoose.Schema(
 // fires automatically before every .save() call
 // the isModified check is critical — without it, every profile update (e.g. changing email)
 // would re-hash an already-hashed password, making it permanently unverifiable
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next(); // skip hashing if password didn't change
-  this.password = await bcrypt.hash(this.password, 10); // 10 = salt rounds (industry standard)
-  next();
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return; // just return, no next()
+  this.password = await bcrypt.hash(this.password, 10);
+  // async function returning = Mongoose considers hook done
 });
 
 // --- Instance Method ---
